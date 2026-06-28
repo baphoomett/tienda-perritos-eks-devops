@@ -25,7 +25,7 @@ jobs:
     - name: Login en Amazon ECR (runner)
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build imagen Frontend y push a ECR
+    - name: Build imagen Frontend y push a ECR 
       run: |
         cd frontend
         docker build -t tienda-frontend .
