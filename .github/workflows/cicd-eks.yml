@@ -24,9 +24,18 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: 4. Construir, etiquetar y subir imágenes a ECR
+    - name: 4. Crear repositorios ECR si no existen
       env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}   # ✅ dinámico, siempre correcto
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        for repo in tienda-backend tienda-frontend tienda-db; do
+          aws ecr describe-repositories --repository-names "$repo" --region $AWS_REGION 2>/dev/null || \
+          aws ecr create-repository --repository-name "$repo" --region $AWS_REGION
+        done
+
+    - name: 5. Construir, etiquetar y subir imágenes a ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: latest
       run: |
         echo "Construyendo y subiendo Backend..."
@@ -41,16 +50,16 @@ jobs:
         docker build -t $ECR_REGISTRY/tienda-db:$IMAGE_TAG ./db
         docker push $ECR_REGISTRY/tienda-db:$IMAGE_TAG
 
-    - name: 5. Conectar GitHub Actions al Clúster EKS
+    - name: 6. Conectar GitHub Actions al Clúster EKS
       run: |
         aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name nombre-eks
 
-    - name: 6. Desplegar manifiestos en Kubernetes
+    - name: 7. Desplegar manifiestos en Kubernetes
       run: |
         cd k8s
         kubectl apply -f . -n tienda
 
-    - name: 7. Forzar actualización de los Pods
+    - name: 8. Forzar actualización de los Pods
       run: |
         kubectl rollout restart deployment tienda-backend -n tienda
         kubectl rollout restart deployment tienda-frontend -n tienda
