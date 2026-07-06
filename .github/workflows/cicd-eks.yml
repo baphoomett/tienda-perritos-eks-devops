@@ -21,11 +21,12 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: 3. Iniciar sesión en Amazon ECR
-      uses: aws-actions/amazon-ecr-login@v1
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
     - name: 4. Construir, etiquetar y subir imágenes a ECR
       env:
-        ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}   # ✅ dinámico, siempre correcto
         IMAGE_TAG: latest
       run: |
         echo "Construyendo y subiendo Backend..."
@@ -42,7 +43,7 @@ jobs:
 
     - name: 5. Conectar GitHub Actions al Clúster EKS
       run: |
-        aws eks update-kubeconfig --region us-east-1 --name nombre-eks
+        aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name nombre-eks
 
     - name: 6. Desplegar manifiestos en Kubernetes
       run: |
